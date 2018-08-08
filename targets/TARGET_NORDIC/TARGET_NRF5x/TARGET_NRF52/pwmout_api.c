@@ -41,7 +41,7 @@
 #include "hal/pwmout_api.h"
 
 #include "pinmap_ex.h"
-#include "nrf_drv_pwm.h"
+#include "nrfx_pwm.h"
 
 #if 0
 #define DEBUG_PRINTF(...) do { printf(__VA_ARGS__); } while(0)
@@ -58,7 +58,7 @@
 #define MAX_PWM_PERIOD_S    ((float) MAX_PWM_PERIOD_US / 1000000.0f)
 
 /* Allocate PWM instances. */
-static nrf_drv_pwm_t nordic_nrf5_pwm_instance[] = {
+static nrfx_pwm_t nordic_nrf5_pwm_instance[] = {
 #if PWM0_ENABLED
     NRF_DRV_PWM_INSTANCE(0),
 #endif
@@ -83,12 +83,12 @@ static void nordic_pwm_init(pwmout_t *obj)
      * 1 pin per instance, otherwise they would share base count.
      * 1 MHz clock source to match the 1 us resolution.
      */
-    nrf_drv_pwm_config_t config = {
+    nrfx_pwm_config_t config = {
         .output_pins  = {
             obj->pin,
-            NRF_DRV_PWM_PIN_NOT_USED,
-            NRF_DRV_PWM_PIN_NOT_USED,
-            NRF_DRV_PWM_PIN_NOT_USED,
+            NRFX_PWM_PIN_NOT_USED,
+            NRFX_PWM_PIN_NOT_USED,
+            NRFX_PWM_PIN_NOT_USED,
         },
         .irq_priority = PWM_DEFAULT_CONFIG_IRQ_PRIORITY,
         .base_clock   = NRF_PWM_CLK_1MHz,
@@ -99,14 +99,14 @@ static void nordic_pwm_init(pwmout_t *obj)
     };
 
     /* Make sure PWM instance is not running before making changes. */
-    nrf_drv_pwm_uninit(&nordic_nrf5_pwm_instance[obj->instance]);
+    nrfx_pwm_uninit(&nordic_nrf5_pwm_instance[obj->instance]);
 
     /* Initialize instance with new configuration. */
-    ret_code_t result = nrf_drv_pwm_init(&nordic_nrf5_pwm_instance[obj->instance],
-                                         &config,
-                                         NULL);
+    ret_code_t result = nrfx_pwm_init(&nordic_nrf5_pwm_instance[obj->instance],
+                                      &config,
+                                      NULL);
 
-    MBED_ASSERT(result == NRF_SUCCESS);
+    MBED_ASSERT(result == NRFX_SUCCESS);
 }
 
 /* Helper function for reinitializing the PWM instance and setting the duty-cycle. */
@@ -118,12 +118,12 @@ static void nordic_pwm_restart(pwmout_t *obj)
     nordic_pwm_init(obj);
 
     /* Set duty-cycle from object. */
-    ret_code_t result = nrf_drv_pwm_simple_playback(&nordic_nrf5_pwm_instance[obj->instance],
-                                                    &obj->sequence,
-                                                    1,
-                                                    NRF_DRV_PWM_FLAG_LOOP);
+    ret_code_t result = nrfx_pwm_simple_playback(&nordic_nrf5_pwm_instance[obj->instance],
+                                                 &obj->sequence,
+                                                 1,
+                                                 NRFX_PWM_FLAG_LOOP);
 
-    MBED_ASSERT(result == NRF_SUCCESS);
+    MBED_ASSERT(result == NRFX_SUCCESS);
 }
 
 /** Initialize the pwm out peripheral and configure the pin
@@ -140,7 +140,7 @@ void pwmout_init(pwmout_t *obj, PinName pin)
     /* Get hardware instance from pinmap. */
     int instance = pin_instance_pwm(pin);
 
-    MBED_ASSERT(instance < (int)(sizeof(nordic_nrf5_pwm_instance) / sizeof(nrf_drv_pwm_t)));
+    MBED_ASSERT(instance < (int)(sizeof(nordic_nrf5_pwm_instance) / sizeof(nrfx_pwm_t)));
 
     /* Populate PWM object with default values. */
     obj->instance = instance;
@@ -168,7 +168,7 @@ void pwmout_free(pwmout_t *obj)
     MBED_ASSERT(obj);
 
     /* Uninitialize PWM instance. */
-    nrf_drv_pwm_uninit(&nordic_nrf5_pwm_instance[obj->instance]);
+    nrfx_pwm_uninit(&nordic_nrf5_pwm_instance[obj->instance]);
 }
 
 /** Set the output duty-cycle in range <0.0f, 1.0f>
@@ -191,12 +191,12 @@ void pwmout_write(pwmout_t *obj, float percent)
     obj->percent = percent;
 
     /* Set new duty-cycle. */
-    ret_code_t result = nrf_drv_pwm_simple_playback(&nordic_nrf5_pwm_instance[obj->instance],
-                                                    &obj->sequence,
-                                                    1,
-                                                    NRF_DRV_PWM_FLAG_LOOP);
+    ret_code_t result = nrfx_pwm_simple_playback(&nordic_nrf5_pwm_instance[obj->instance],
+                                                 &obj->sequence,
+                                                 1,
+                                                 NRFX_PWM_FLAG_LOOP);
 
-    MBED_ASSERT(result == NRF_SUCCESS);
+    MBED_ASSERT(result == NRFX_SUCCESS);
 }
 
 /** Read the current float-point output duty-cycle
