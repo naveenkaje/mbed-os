@@ -1456,10 +1456,10 @@ void serial_putc(serial_t *obj, int character)
     nrf_uarte_task_trigger(nordic_nrf5_uart_register[instance], NRF_UARTE_TASK_STARTTX);
 
     do {
-        done = nrf_uarte_event_extra_check(nordic_nrf5_uart_register[instance], NRF_UARTE_EVENT_TXDRDY);
+        done = nrf_uarte_event_check(nordic_nrf5_uart_register[instance], (nrf_uarte_event_t) NRF_UARTE_EVENT_TXDRDY);
     } while(done == false);
 
-    nrf_uarte_event_extra_clear(nordic_nrf5_uart_register[instance], NRF_UARTE_EVENT_TXDRDY);
+    nrf_uarte_event_clear(nordic_nrf5_uart_register[instance], (nrf_uarte_event_t) NRF_UARTE_EVENT_TXDRDY);
 }
 
 /** Check if the serial peripheral is readable
