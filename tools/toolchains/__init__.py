@@ -706,13 +706,14 @@ class mbedToolchain:
             self._add_defines_from_region(region)
             if region.active:
                 for define in [
-                        ("%s_START" % active_region_name, "0x%x" % region.start),
+                        ("%s_START" % active_region_name, "0x%x" % (region.start)),# + 0x1000)),
                         ("%s_SIZE" % active_region_name, "0x%x" % region.size)
                 ]:
                     define_string = self.make_ld_define(*define)
                     self.ld.append(define_string)
                     self.flags["ld"].append(define_string)
-            self.notify.info("  Region %s: size 0x%x, offset 0x%x"
+                    self.notify.info("Region %s: size 0x%x, offset 0x%x" % (define_string, region.start, region.size))
+            self.notify.info("Region %s: size 0x%x, offset 0x%x"
                              % (region.name, region.size, region.start))
 
     def add_regions(self):
