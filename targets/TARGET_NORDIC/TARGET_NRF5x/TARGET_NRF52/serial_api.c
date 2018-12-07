@@ -680,12 +680,12 @@ static void nordic_nrf5_uart_configure_object(serial_t *obj)
 
     /* Enable flow control and parity. */
     nrf_uarte_configure(nordic_nrf5_uart_register[uart_object->instance],
-                        uart_object->parity,
-                        uart_object->hwfc);
+                        (nrf_uarte_parity_t) uart_object->parity,
+                        (nrf_uarte_hwfc_t) uart_object->hwfc);
 
     /* Set baudrate. */
     nrf_uarte_baudrate_set(nordic_nrf5_uart_register[uart_object->instance],
-                           uart_object->baudrate);
+                           (nrf_uarte_baudrate_t) uart_object->baudrate);
 }
 
 /**
@@ -945,7 +945,8 @@ void serial_init(serial_t *obj, PinName tx, PinName rx)
         /* Wait until NRF_UARTE_EVENT_TXDRDY is set before proceeding. */
         bool done = false;
         do {
-            done = nrf_uarte_event_extra_check(nordic_nrf5_uart_register[instance], NRF_UARTE_EVENT_TXDRDY);
+            done = nrf_uarte_event_check(nordic_nrf5_uart_register[instance],
+                                (nrf_uarte_event_t) NRF_UARTE_EVENT_TXDRDY);
         } while(done == false);
     }
 
@@ -1030,7 +1031,7 @@ void serial_baud(serial_t *obj, int baudrate)
     struct serial_s *uart_object = obj;
 #endif
 
-    nrf_uart_baudrate_t new_rate = NRF_UART_BAUDRATE_9600;
+    nrf_uarte_baudrate_t new_rate = NRF_UART_BAUDRATE_9600;
 
     /* Round down to nearest supported baud rate. */
     if (baudrate < 2400) {
