@@ -48,6 +48,7 @@
 #include "nrfx_glue.h"
 #include "nrfx_gpiote.h"
 #include "nrfx_ppi.h"
+#include "nrfx_uarte.h"
 
 #include "platform/mbed_critical.h"
 
@@ -165,15 +166,15 @@ typedef enum {
 /**
  * UARTE state. One for each instance.
  */
-static nordic_uart_state_t nordic_nrf5_uart_state[NRFX_UART_ENABLED_COUNT] = { 0 };
+static nordic_uart_state_t nordic_nrf5_uart_state[NRFX_UARTE_ENABLED_COUNT] = { 0 };
 
 /**
  * Array with UARTE register pointers for easy access.
  */
-static NRF_UARTE_Type *nordic_nrf5_uart_register[NRFX_UART_ENABLED_COUNT] = {
+static NRF_UARTE_Type *nordic_nrf5_uart_register[] = {
     NRF_UARTE0,
 #if UART1_ENABLED
-    NRF_UARTE1,
+    NRF_UARTE1
 #endif
 };
 
@@ -192,6 +193,11 @@ NRF_ATFIFO_DEF(nordic_nrf5_uart_fifo_1, uint8_t, UART1_FIFO_BUFFER_SIZE);
  */
 static uint8_t nordic_nrf5_uart_swi_mask_tx_0 = 0;
 static uint8_t nordic_nrf5_uart_swi_mask_rx_0 = 0;
+
+#if UART1_ENABLED
+static uint8_t nordic_nrf5_uart_swi_mask_tx_1 = 0;
+static uint8_t nordic_nrf5_uart_swi_mask_rx_1 = 0;
+#endif
 
 /**
  * Global variables expected by mbed_retarget.cpp for STDOUT.
@@ -880,7 +886,7 @@ void serial_init(serial_t *obj, PinName tx, PinName rx)
         nordic_nrf5_uart_state[1].owner = NULL;
 
         /* Allocate a PPI channel for flow control */
-        ret = nrf_drv_ppi_channel_alloc(&nordic_nrf5_uart_state[1].ppi_rts);
+        ret = nrfx_ppi_channel_alloc(&nordic_nrf5_uart_state[1].ppi_rts);
         MBED_ASSERT(ret == NRF_SUCCESS);
 
         /* Clear RTS */
@@ -890,8 +896,8 @@ void serial_init(serial_t *obj, PinName tx, PinName rx)
         nrf_uarte_int_disable(nordic_nrf5_uart_register[1], 0xFFFFFFFF);
 
         NVIC_SetVector(UARTE1_IRQn, (uint32_t) nordic_nrf5_uart1_handler);
-        NRFX_IRQ_PRIORITY_SET(nrfx_get_irq_number(UARTE1_IRQn), APP_IRQ_PRIORITY_HIGHEST);
-        NRFX_IRQ_ENABLE(nrfx_get_irq_number(UARTE1_IRQn));
+        NRFX_IRQ_PRIORITY_SET(UARTE1_IRQn, APP_IRQ_PRIORITY_HIGHEST);
+        NRFX_IRQ_ENABLE(UARTE1_IRQn);
 #endif
     }
 
