@@ -244,11 +244,11 @@ class Uvision(Exporter):
                                       self.resources.inc_dirs).encode('utf-8'),
             'device': DeviceUvision(self.target),
         }
-        sct_name, sct_path = self.resources.get_file_refs(
-            FileType.LD_SCRIPT)[0]
-        ctx['linker_script'] = self.toolchain.correct_scatter_shebang(
-            sct_path, dirname(sct_name))
-        if ctx['linker_script'] != sct_path:
+        sct_file_ref = self.resources.get_file_refs(FileType.LD_SCRIPT)[0]
+        sct_file_ref = self.toolchain.correct_scatter_shebang(sct_file_ref, dirname(sct_file_ref.name))
+        self.resources.add_file_ref(FileType.LD_SCRIPT, sct_file_ref.name, sct_file_ref.path)
+        ctx['linker_script'] = sct_file_ref.name
+        if ctx['linker_script'] != sct_file_ref.path:
             self.generated_files.append(ctx['linker_script'])
         ctx['cputype'] = ctx['device'].core.rstrip("FD").replace("-NS", "")
         if ctx['device'].core.endswith("FD"):
