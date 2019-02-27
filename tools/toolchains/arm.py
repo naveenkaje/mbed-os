@@ -19,7 +19,7 @@ from builtins import str
 
 import re
 from copy import copy
-from os.path import join, dirname, splitext, basename, exists, relpath, isfile
+from os.path import join, dirname, splitext, basename, exists, isfile, split
 from os import makedirs, write, curdir, remove
 from tempfile import mkstemp
 from shutil import rmtree
@@ -29,6 +29,7 @@ from tools.targets import CORE_ARCH
 from tools.toolchains import mbedToolchain, TOOLCHAIN_PATHS
 from tools.hooks import hook_tool
 from tools.utils import mkdir, NotSupportedException, run_cmd
+from tools.resources import FileRef
 
 class ARM(mbedToolchain):
     LINKER_EXT = '.sct'
@@ -235,11 +236,11 @@ class ARM(mbedToolchain):
     def compile_cpp(self, source, object, includes):
         return self.compile(self.cppc, source, object, includes)
 
-    def correct_scatter_shebang(self, scatter_file, cur_dir_name=None):
+    def correct_scatter_shebang(self, sc_fileref, cur_dir_name=None):
         """Correct the shebang at the top of a scatter file.
 
         Positional arguments:
-        scatter_file -- the scatter file to correct
+        sc_fileref -- FileRef object of the scatter file
 
         Keyword arguments:
         cur_dir_name -- the name (not path) of the directory containing the
@@ -251,23 +252,23 @@ class ARM(mbedToolchain):
         Side Effects:
         This method MAY write a new scatter file to disk
         """
-        with open(scatter_file, "r") as input:
+        with open(sc_fileref.path, "r") as input:
             lines = input.readlines()
             if (lines[0].startswith(self.SHEBANG) or
                 not lines[0].startswith("#!")):
-                return scatter_file
+                return sc_fileref
             else:
                 new_scatter = join(self.build_dir, ".link_script.sct")
                 if cur_dir_name is None:
-                    cur_dir_name = dirname(scatter_file)
+                    cur_dir_name = dirname(sc_fileref.path)
                 self.SHEBANG += " -I %s" % cur_dir_name
-                if self.need_update(new_scatter, [scatter_file]):
+                if self.need_update(new_scatter, [sc_fileref.path]):
                     with open(new_scatter, "w") as out:
                         out.write(self.SHEBANG)
                         out.write("\n")
                         out.write("".join(lines[1:]))
 
-                return new_scatter
+                return FileRef(".link_script.sct", new_scatter)
 
     @hook_tool
     def link(self, output, objects, libraries, lib_dirs, scatter_file):
@@ -279,8 +280,9 @@ class ARM(mbedToolchain):
         if lib_dirs:
             args.extend(["--userlibpath", ",".join(lib_dirs)])
         if scatter_file:
-            new_scatter = self.correct_scatter_shebang(scatter_file)
-            args.extend(["--scatter", new_scatter])
+            scatter_name = split(scatter_file)[-1]
+            new_scatter = self.correct_scatter_shebang(FileRef(scatter_name, scatter_file))
+            args.extend(["--scatter", new_scatter.path])
 
         cmd_pre = self.ld + args
         cmd = self.hook.get_cmdline_linker(cmd_pre)
